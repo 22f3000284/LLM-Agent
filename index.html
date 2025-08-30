@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ChatBox - Advanced AI Assistant with Multi-Tool Capabilities, Voice Interface, and Real-time Collaboration">
+    <meta name="keywords" content="AI assistant, chat interface, web search, code execution, voice assistant">
+    <meta name="author" content="Pooja D.">
+
+    <!-- PWA Support -->
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="AgentFlow Pro">
+
+    <!-- Preconnect to improve performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Modern fonts and icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap LLM Provider -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-llm-provider@1/dist/bootstrap-llm-provider.css">
+    
+    <!-- Bootstrap Alert -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-alert@1/dist/bootstrap-alert.css">
+
+    <!-- Code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <title>LLM - AI Assistant</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => console.log('SW registered: ', registration))
+                    .catch(registrationError => console.log('SW registration failed: ', registrationError));
+            });
+        }
+    </script>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-logo">
+                <i class="fas fa-brain fa-3x"></i>
+            </div>
+            <h2>LLM Agent</h2>
+            <p>Initializing...</p>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="app" class="app-container">
+        <!-- Header Navigation -->
+        <header class="header-nav">
+            <div class="container-fluid">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <div class="brand-section">
+                            <i class="fas fa-robot brand-icon"></i>
+                            <div class="brand-info">
+                                <h1 class="brand-title">LLM Agent</h1>
+                                <span class="brand-subtitle">LLM v1.0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="header-controls d-flex justify-content-end">
+                            <button id="voice-toggle" class="btn btn-header-control" title="Voice Input">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                            <button id="theme-toggle" class="btn btn-header-control" title="Toggle Theme">
+                                <i class="fas fa-moon"></i>
+                            </button>
+                            <button id="fullscreen-toggle" class="btn btn-header-control" title="Fullscreen">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                            <button id="settings-toggle" class="btn btn-header-control" title="Settings" data-bs-toggle="modal" data-bs-target="#settings-modal">
+                                <i class="fas fa-cog"></i>
+                            </button>
+
+                            <button id="toggle-perf" class="btn btn-header-control" title="Performance">
+                                <i class="fas fa-chart-line"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <div class="container-fluid h-100">
+                <div class="row h-100">
+                    <!-- Sidebar -->
+                    <div class="col-lg-2 col-xl-3 sidebar-wrapper">
+                        <aside id="sidebar" class="sidebar-panel">
+                            <div class="sidebar-header">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h3 class="sidebar-title">Conversations</h3>
+                                    <button id="new-chat" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-plus me-0"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="conversation-list" id="conversation-list">
+                                <!-- Conversation items will be populated here -->
+                            </div>
+
+                            <div class="sidebar-footer mt-auto">
+                                <div class="stats-grid">
+                                    <div class="stat-card">
+                                        <div class="stat-number" id="total-messages">0</div>
+                                        <div class="stat-label">Messages</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-number" id="total-conversations">0</div>
+                                        <div class="stat-label">Conversations</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+
+                    <!-- Main Content Area -->
+                    <div class="col-lg-9 col-xl-9">
+                        <div class="chat-container">
+                            <!-- Chat Header -->
+                            <div class="chat-header-section">
+                                <div class="row align-items-center">
+                                    <div class="col">
+                                        <div class="chat-title-area">
+                                            <h2 id="chat-title" class="chat-title">Welcome</h2>
+                                            <p id="chat-description" class="chat-subtitle">Your advanced AI assistant with multi-tool capabilities</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="chat-actions-group">
+                                            <button id="export-chat" class="btn btn-outline-secondary btn-sm" title="Export Chat">
+                                                <i class="fas fa-download"></i>
+                                            </button>
+                                            <button id="share-chat" class="btn btn-outline-secondary btn-sm" title="Share Chat">
+                                                <i class="fas fa-share"></i>
+                                            </button>
+                                            <button id="clear-chat" class="btn btn-outline-danger btn-sm" title="Clear Chat">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Messages Area -->
+                            <div class="messages-area" id="messages-container">
+                                <div class="welcome-screen" id="welcome-screen">
+                                    <div class="welcome-content-new">
+                                        <div class="welcome-header">
+                                            <div class="welcome-avatar">
+                                                <i class="fas fa-robot"></i>
+                                            </div>
+                                            <h2 class="welcome-title">Welcome</h2>
+                                            <p class="welcome-description">Your intelligent AI assistant ready to help</p>
+                                        </div>
+
+                                        <div class="capabilities-showcase">
+                                            <div class="row">
+                                                <div class="col-md-6 col-lg-3 mb-3">
+                                                    <div class="capability-item">
+                                                        <div class="capability-icon">
+                                                            <i class="fas fa-search"></i>
+                                                        </div>
+                                                        <h4>Web Search</h4>
+                                                        <p>Real-time information retrieval</p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6 col-lg-3 mb-3">
+                                                    <div class="capability-item">
+                                                        <div class="capability-icon">
+                                                            <i class="fas fa-code"></i>
+                                                        </div>
+                                                        <h4>Code Execution</h4>
+                                                        <p>Safe JavaScript processing</p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6 col-lg-3 mb-3">
+                                                    <div class="capability-item">
+                                                        <div class="capability-icon">
+                                                            <i class="fas fa-brain"></i>
+                                                        </div>
+                                                        <h4>AI Analysis</h4>
+                                                        <p>Advanced data processing</p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6 col-lg-3 mb-3">
+                                                    <div class="capability-item">
+                                                        <div class="capability-icon">
+                                                            <i class="fas fa-microphone"></i>
+                                                        </div>
+                                                        <h4>Voice Interface</h4>
+                                                        <p>Hands-free interaction</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="quick-start-section">
+                                            <h5 class="quick-start-title">Quick Start</h5>
+                                            <div class="quick-actions-new">
+                                                <button class="quick-action btn btn-outline-primary" data-prompt="Help me research the latest AI developments">
+                                                    <i class="fas fa-flask me-2"></i>Research AI Trends
+                                                </button>
+                                                <button class="quick-action btn btn-outline-primary" data-prompt="Create a data visualization showing sample sales data">
+                                                    <i class="fas fa-chart-bar me-2"></i>Create Visualization
+                                                </button>
+                                                <button class="quick-action btn btn-outline-primary" data-prompt="Help me write and test a JavaScript function">
+                                                    <i class="fas fa-code me-2"></i>Code Assistant
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="messages-list" id="messages">
+                                    <!-- Messages will be populated here -->
+                                </div>
+                            </div>
+
+                            <!-- Input Section -->
+                            <div class="input-section">
+                                <div class="file-drop-zone" id="file-drop-zone">
+                                    <div class="drop-zone-content">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <p>Drop files here to analyze</p>
+                                    </div>
+                                </div>
+
+                                <div class="input-area-new">
+                                    <div class="input-group-custom">
+                                        <button id="attach-file" class="btn btn-input-action" title="Attach File">
+                                            <i class="fas fa-paperclip"></i>
+                                        </button>
+
+                                        <div class="input-field-wrapper">
+                                            <textarea 
+                                                id="user-input" 
+                                                class="form-control input-field"
+                                                placeholder="Type your message here... Press Enter to send, Shift+Enter for new line"
+                                                rows="1"
+                                                maxlength="5000"
+                                            ></textarea>
+                                        </div>
+
+                                        <button id="voice-input" class="btn btn-input-action voice-btn" title="Voice Input">
+                                            <i class="fas fa-microphone"></i>
+                                        </button>
+
+                                        <button id="send-message" class="btn btn-primary send-btn" title="Send Message">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="input-footer">
+                                        <div class="character-counter">
+                                            <span id="char-count">0</span>/5000
+                                        </div>
+
+                                        <div class="typing-indicator" id="typing-indicator">
+                                            <div class="typing-animation">
+                                                <span></span>
+                                                <span></span>
+                                                <span></span>
+                                            </div>
+                                            <span class="typing-label">AI is thinking...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settings-modal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="settingsModalLabel">Settings</h5>
+                    <button type="button" class="btn-close" id="close-settings" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="tab-content mt-3" id="settingsTabContent">
+                        <!-- API Configuration Tab -->
+                        <div class="tab-pane fade show active tab-content" id="api-tab" role="tabpanel">
+                            <div class="mb-3">
+                                <label for="llm-provider-selector" class="form-label">LLM Provider</label>
+                                <div id="llm-provider-selector"></div>
+                                <!-- AI Pipe as first option (added for proxy support) -->
+                                <select id="llm-provider" class="form-select mt-2">
+                                    <option value="aipipe">AI Pipe (aipipe.org)</option>
+                                    <option value="openai">OpenAI GPT</option>
+                                    <option value="anthropic">Anthropic Claude</option>
+                                    <option value="google">Google Gemini</option>
+                                    <option value="local">Local Model</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="api-key" class="form-label">API Key / Token</label>
+                                <div class="input-group">
+                                    <input type="password" id="api-key" class="form-control" placeholder="Enter your API key or AI Pipe token">
+                                    <button class="btn btn-outline-secondary toggle-visibility" type="button">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="model-name" class="form-label">Model</label>
+                                <select id="model-name" class="form-select">
+                                    <option>Loading models...</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="max-tokens" class="form-label">Max Tokens</label>
+                                <input type="number" id="max-tokens" class="form-control" value="2000" min="100" max="8000">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="temperature" class="form-label">Temperature: <span class="range-value">0.3</span></label>
+                                <input type="range" id="temperature" class="form-range" min="0" max="2" step="0.1" value="0.3">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="google-search-key" class="form-label">Google Search API Key</label>
+                                <input type="password" id="google-search-key" class="form-control" placeholder="For web_search tool">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="google-search-engine-id" class="form-label">Google Search Engine ID</label>
+                                <input type="text" id="google-search-engine-id" class="form-control" placeholder="Custom Search Engine ID">
+                            </div>
+                        </div>
+                    </div>
+                </div>  
+
+                <div class="modal-footer">
+                    <button id="export-settings" class="btn btn-secondary">
+                        <i class="fas fa-download me-1"></i>
+                        Export Settings
+                    </button>
+                    <button id="import-settings" class="btn btn-secondary">
+                        <i class="fas fa-upload me-1"></i>
+                        Import Settings
+                    </button>
+                    <button id="save-settings" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>
+                        Save Settings
+                    </button>
+                    <button id="clear-all-data" class="btn btn-danger">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        Clear All Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Monitor -->
+    <div id="performance-monitor" class="performance-panel">
+        <div class="performance-header">
+            <h6 class="mb-0">Performance</h6>
+        </div>
+        <div class="performance-metrics">
+            <div class="metric-row">
+                <span class="metric-label">Response Time</span>
+                <span class="metric-value" id="response-time">0ms</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Memory Usage</span>
+                <span class="metric-value" id="memory-usage">0MB</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">API Calls</span>
+                <span class="metric-value" id="api-calls">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container for Bootstrap Alert -->
+    <div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 11;">
+        <!-- Toast messages will be added here -->
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu">
+        <div class="context-item" data-action="copy">
+            <i class="fas fa-copy me-2"></i> Copy
+        </div>
+        <div class="context-item" data-action="edit">
+            <i class="fas fa-edit me-2"></i> Edit
+        </div>
+        <div class="context-item" data-action="delete">
+            <i class="fas fa-trash me-2"></i> Delete
+        </div>
+        <div class="context-item" data-action="bookmark">
+            <i class="fas fa-bookmark me-2"></i> Bookmark
+        </div>
+    </div>
+
+    <!-- File Input -->
+    <input type="file" id="file-input" multiple accept=".txt,.json,.csv,.md,.js,.py,.html,.css" style="display: none;">
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Bootstrap LLM Provider -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-llm-provider@1/dist/bootstrap-llm-provider.js"></script>
+    
+    <!-- Bootstrap Alert -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-alert@1/dist/bootstrap-alert.js"></script>
+    
+    <script src="agent.js"></script>
+    <script>
+        // Initialize Bootstrap components
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize highlight if present
+            if (window.hljs && typeof hljs.highlightAll === 'function') hljs.highlightAll();
+            
+            // Initialize LLM Provider Selector
+            if (window.LLMProviderSelector) {
+                const llmSelector = new LLMProviderSelector({
+                    container: '#llm-provider-selector',
+                    defaultProvider: 'aipipe',
+                    onChange: (provider, model) => {
+                        // Update hidden select for compatibility
+                        document.getElementById('llm-provider').value = provider;
+                        document.getElementById('llm-provider').dispatchEvent(new Event('change'));
+                    }
+                });
+            }
+            
+            // Override showToast to use bootstrap-alert
+            if (window.agentFlow && window.BootstrapAlert) {
+                const originalShowToast = window.agentFlow.showToast;
+                window.agentFlow.showToast = function(type, title, message) {
+                    BootstrapAlert.show({
+                        type: type === 'error' ? 'danger' : type,
+                        title: title,
+                        message: message,
+                        container: '#toast-container',
+                        dismissible: true,
+                        autoHide: true,
+                        delay: 5000
+                    });
+                };
+            }
+        });
+    </script>
+</body>
+</html>
